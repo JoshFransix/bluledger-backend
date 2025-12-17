@@ -122,7 +122,12 @@ export class AuthService {
     );
 
     // Delete old refresh token and save new one (rotation)
-    await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
+    // Use deleteMany to avoid error if token was already deleted
+    await this.prisma.refreshToken.deleteMany({ 
+      where: { 
+        id: storedToken.id 
+      } 
+    });
     await this.saveRefreshToken(payload.sub, newRefreshToken);
 
     return {
@@ -171,9 +176,16 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + days);
 
-    await this.prisma.refreshToken.create({
-      data: {
+    // Use upsert to handle case where token already exists
+    // This prevents unique constraint errors during concurrent requests
+    await this.prisma.refreshToken.upsert({
+      where: { token },
+      create: {
         token,
+        userId,
+        expiresAt,
+      },
+      update: {
         userId,
         expiresAt,
       },

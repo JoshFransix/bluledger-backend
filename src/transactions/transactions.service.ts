@@ -75,7 +75,9 @@ export class TransactionsService {
     });
 
     if (!transaction) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException(
+        `Transaction with ID '${transactionId}' not found in your organization.`
+      );
     }
 
     return this.formatTransaction(transaction);
@@ -91,7 +93,9 @@ export class TransactionsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException(
+        `Transaction with ID '${transactionId}' not found in your organization.`
+      );
     }
 
     // Validate new accounts if provided
@@ -156,30 +160,67 @@ export class TransactionsService {
     });
 
     if (!account) {
-      throw new BadRequestException(`Account ${accountId} not found or does not belong to organization`);
+      throw new BadRequestException(
+        `Account with ID '${accountId}' not found in your organization. Please ensure the account exists and belongs to your organization.`
+      );
     }
+
+    if (!account.isActive) {
+      throw new BadRequestException(
+        `Account '${account.name}' is inactive. Please activate the account before creating transactions.`
+      );
+    }
+
+    return account;
   }
 
   private validateTransactionLogic(dto: CreateTransactionDto) {
+    // Validate amount is positive
+    if (dto.amount <= 0) {
+      throw new BadRequestException('Transaction amount must be greater than zero');
+    }
+
     switch (dto.type) {
       case 'INCOME':
         if (!dto.toAccountId) {
-          throw new BadRequestException('Income transactions require toAccountId');
+          throw new BadRequestException(
+            'Income transactions require a destination account (toAccountId). Please select which account will receive this income.'
+          );
+        }
+        if (dto.fromAccountId) {
+          throw new BadRequestException(
+            'Income transactions should not have a source account (fromAccountId). Use TRANSFER for account-to-account movements.'
+          );
         }
         break;
       case 'EXPENSE':
         if (!dto.fromAccountId) {
-          throw new BadRequestException('Expense transactions require fromAccountId');
+          throw new BadRequestException(
+            'Expense transactions require a source account (fromAccountId). Please select which account will be charged.'
+          );
+        }
+        if (dto.toAccountId) {
+          throw new BadRequestException(
+            'Expense transactions should not have a destination account (toAccountId). Use TRANSFER for account-to-account movements.'
+          );
         }
         break;
       case 'TRANSFER':
         if (!dto.fromAccountId || !dto.toAccountId) {
-          throw new BadRequestException('Transfer transactions require both fromAccountId and toAccountId');
+          throw new BadRequestException(
+            'Transfer transactions require both source (fromAccountId) and destination (toAccountId) accounts.'
+          );
         }
         if (dto.fromAccountId === dto.toAccountId) {
-          throw new BadRequestException('Cannot transfer to the same account');
+          throw new BadRequestException(
+            'Cannot transfer funds to the same account. Source and destination must be different.'
+          );
         }
         break;
+      default:
+        throw new BadRequestException(
+          `Invalid transaction type '${dto.type}'. Must be one of: INCOME, EXPENSE, TRANSFER`
+        );
     }
   }
 

@@ -292,6 +292,53 @@ Authorization: Bearer <access_token>
 
 ---
 
+### GET /organizations/:id/summary
+Get comprehensive organization summary with balances, stats, and net worth.
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `200 OK`
+```json
+{
+  "id": "clx456...",
+  "name": "My Company",
+  "stats": {
+    "accountsCount": 5,
+    "transactionsCount": 120,
+    "membersCount": 3
+  },
+  "balances": {
+    "USD": {
+      "total": 50000.00,
+      "assets": 75000.00,
+      "liabilities": 25000.00
+    },
+    "EUR": {
+      "total": 20000.00,
+      "assets": 30000.00,
+      "liabilities": 10000.00
+    }
+  },
+  "netWorth": {
+    "USD": 50000.00,
+    "EUR": 20000.00
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-15T12:00:00.000Z"
+}
+```
+
+**Notes:**
+- Ideal for dashboard overview
+- Multi-currency support
+- Net worth = assets - liabilities
+- Only includes active accounts
+
+---
+
 ## Account Endpoints
 
 **All account endpoints require both Bearer token and x-org-id header.**

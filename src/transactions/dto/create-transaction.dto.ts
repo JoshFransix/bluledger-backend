@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsEnum, IsNumber, IsString, IsOptional, IsDateString, IsArray } from 'class-validator';
+import { IsNotEmpty, IsEnum, IsNumber, IsString, IsOptional, IsDateString, IsArray, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateTransactionDto {
@@ -8,9 +8,10 @@ export class CreateTransactionDto {
   @IsNotEmpty()
   type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
 
-  @ApiProperty({ example: 1000.50 })
+  @ApiProperty({ example: 1000.50, description: 'Transaction amount (must be positive)' })
   @IsNumber()
   @IsNotEmpty()
+  @Min(0.01, { message: 'Amount must be greater than zero' })
   @Type(() => Number)
   amount: number;
 

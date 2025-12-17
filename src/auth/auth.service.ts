@@ -131,15 +131,20 @@ export class AuthService {
     };
   }
 
-  async logout(refreshToken: string) {
-    if (!refreshToken) {
-      return { message: 'Logged out successfully' };
+  async logout(refreshToken: string, userId?: string) {
+    // If we have a refresh token, delete it specifically
+    if (refreshToken) {
+      await this.prisma.refreshToken.deleteMany({
+        where: { token: refreshToken },
+      });
     }
 
-    // Delete refresh token from database
-    await this.prisma.refreshToken.deleteMany({
-      where: { token: refreshToken },
-    });
+    // If userId is provided, invalidate all tokens for this user (logout from all devices)
+    if (userId) {
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId },
+      });
+    }
 
     return { message: 'Logged out successfully' };
   }

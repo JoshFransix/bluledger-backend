@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
@@ -8,6 +8,20 @@ export class AccountsService {
   constructor(private prisma: PrismaService) {}
 
   async create(orgId: string, dto: CreateAccountDto) {
+    // Check for duplicate account name in organization
+    const existing = await this.prisma.account.findFirst({
+      where: {
+        organizationId: orgId,
+        name: dto.name,
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        `An account with the name '${dto.name}' already exists in your organization. Please choose a different name.`
+      );
+    }
+
     const account = await this.prisma.account.create({
       data: {
         organizationId: orgId,
@@ -40,7 +54,9 @@ export class AccountsService {
     });
 
     if (!account) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException(
+        `Account with ID '${accountId}' not found in your organization.`
+      );
     }
 
     return this.formatAccount(account);
@@ -60,13 +76,29 @@ export class AccountsService {
 
   async remove(orgId: string, accountId: string) {
     // Verify account belongs to organization
-    await this.findOne(orgId, accountId);
+    const account = await this.findOne(orgId, accountId);
+
+    // Check if account has transactions
+    const transactionCount = await this.prisma.transaction.count({
+      where: {
+        OR: [
+          { fromAccountId: accountId },
+          { toAccountId: accountId },
+        ],
+      },
+    });
+
+    if (transactionCount > 0) {
+      throw new BadRequestException(
+        `Cannot delete account '${account.name}' because it has ${transactionCount} associated transaction(s). Please delete the transactions first or deactivate the account instead.`
+      );
+    }
 
     await this.prisma.account.delete({
       where: { id: accountId },
     });
 
-    return { message: 'Account deleted successfully' };
+    return { message: `Account '${account.name}' deleted successfully` };
   }
 
   private formatAccount(account: any) {

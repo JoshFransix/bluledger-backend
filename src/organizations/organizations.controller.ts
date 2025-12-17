@@ -47,4 +47,12 @@ export class OrganizationsController {
   ) {
     return this.organizationsService.update(id, userId, dto);
   }
+
+  @Get(':id/summary')
+  @ApiOperation({ summary: 'Get organization summary with balances and stats' })
+  @ApiResponse({ status: 200, description: 'Organization summary retrieved' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
+  getSummary(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.organizationsService.getSummary(id, userId);
+  }
 }

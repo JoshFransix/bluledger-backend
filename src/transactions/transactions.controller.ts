@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiSecurity, ApiQuery } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -26,8 +26,26 @@ export class TransactionsController {
   @Get()
   @ApiOperation({ summary: 'Get all transactions for organization' })
   @ApiResponse({ status: 200, description: 'Transactions retrieved', type: [TransactionDto] })
-  findAll(@OrgId() orgId: string) {
-    return this.transactionsService.findAll(orgId);
+  @ApiQuery({ name: 'accountId', required: false, description: 'Filter by account (fromAccountId or toAccountId)' })
+  @ApiQuery({ name: 'type', required: false, enum: ['INCOME', 'EXPENSE', 'TRANSFER'], description: 'Filter by transaction type' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Filter by start date (ISO format)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'Filter by end date (ISO format)' })
+  @ApiQuery({ name: 'category', required: false, description: 'Filter by category' })
+  findAll(
+    @OrgId() orgId: string,
+    @Query('accountId') accountId?: string,
+    @Query('type') type?: 'INCOME' | 'EXPENSE' | 'TRANSFER',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.transactionsService.findAll(orgId, {
+      accountId,
+      type,
+      startDate,
+      endDate,
+      category,
+    });
   }
 
   @Get(':id')

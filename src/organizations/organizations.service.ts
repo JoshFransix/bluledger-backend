@@ -223,4 +223,135 @@ export class OrganizationsService {
       updatedAt: organization.updatedAt,
     };
   }
+
+  async getMembers(orgId: string, userId: string) {
+    // Verify user has access to organization
+    const hasAccess = await this.verifyUserAccess(orgId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this organization');
+    }
+
+    const members = await this.prisma.organizationMember.findMany({
+      where: { organizationId: orgId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return members.map(m => ({
+      id: m.id,
+      userId: m.userId,
+      email: m.user.email,
+      name: m.user.name,
+      role: m.role,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+    }));
+  }
+
+  async updateMemberRole(orgId: string, memberId: string, newRole: string, requestingUserId: string) {
+    // Verify requesting user is admin
+    const requestingMembership = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: orgId,
+          userId: requestingUserId,
+        },
+      },
+    });
+
+    if (!requestingMembership || requestingMembership.role !== 'admin') {
+      throw new ForbiddenException('Only admins can change member roles');
+    }
+
+    // Validate role
+    const validRoles = ['admin', 'member', 'viewer'];
+    if (!validRoles.includes(newRole)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+
+    // Update member role
+    const member = await this.prisma.organizationMember.update({
+      where: { id: memberId },
+      data: { role: newRole },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: member.id,
+      userId: member.userId,
+      email: member.user.email,
+      name: member.user.name,
+      role: member.role,
+      updatedAt: member.updatedAt,
+    };
+  }
+
+  async removeMember(orgId: string, memberId: string, requestingUserId: string) {
+    // Verify requesting user is admin
+    const requestingMembership = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: orgId,
+          userId: requestingUserId,
+        },
+      },
+    });
+
+    if (!requestingMembership || requestingMembership.role !== 'admin') {
+      throw new ForbiddenException('Only admins can remove members');
+    }
+
+    // Get member to check if they're trying to remove themselves
+    const memberToRemove = await this.prisma.organizationMember.findUnique({
+      where: { id: memberId },
+      include: { user: true },
+    });
+
+    if (!memberToRemove) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (memberToRemove.userId === requestingUserId) {
+      throw new BadRequestException('You cannot remove yourself from the organization');
+    }
+
+    // Check if this is the last admin
+    if (memberToRemove.role === 'admin') {
+      const adminCount = await this.prisma.organizationMember.count({
+        where: {
+          organizationId: orgId,
+          role: 'admin',
+        },
+      });
+
+      if (adminCount <= 1) {
+        throw new BadRequestException('Cannot remove the last admin from the organization');
+      }
+    }
+
+    await this.prisma.organizationMember.delete({
+      where: { id: memberId },
+    });
+
+    return {
+      message: 'Member removed successfully',
+      removedUserId: memberToRemove.userId,
+    };
+  }
 }

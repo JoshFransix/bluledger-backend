@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -54,5 +54,38 @@ export class OrganizationsController {
   @ApiResponse({ status: 404, description: 'Organization not found' })
   getSummary(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.organizationsService.getSummary(id, userId);
+  }
+
+  @Get(':id/members')
+  @ApiOperation({ summary: 'Get all members of an organization' })
+  @ApiResponse({ status: 200, description: 'Members retrieved' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  getMembers(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.organizationsService.getMembers(id, userId);
+  }
+
+  @Patch(':id/members/:memberId/role')
+  @ApiOperation({ summary: 'Update member role (admin only)' })
+  @ApiResponse({ status: 200, description: 'Member role updated' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  updateMemberRole(
+    @Param('id') orgId: string,
+    @Param('memberId') memberId: string,
+    @Body('role') role: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.organizationsService.updateMemberRole(orgId, memberId, role, userId);
+  }
+
+  @Delete(':id/members/:memberId')
+  @ApiOperation({ summary: 'Remove member from organization (admin only)' })
+  @ApiResponse({ status: 200, description: 'Member removed' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  removeMember(
+    @Param('id') orgId: string,
+    @Param('memberId') memberId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.organizationsService.removeMember(orgId, memberId, userId);
   }
 }

@@ -36,9 +36,31 @@ export class AccountsService {
     return this.formatAccount(account);
   }
 
-  async findAll(orgId: string) {
+  async findAll(
+    orgId: string,
+    filters?: {
+      type?: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+      isActive?: boolean;
+      currency?: string;
+    },
+  ) {
+    const where: any = { organizationId: orgId };
+
+    // Apply filters if provided
+    if (filters?.type) {
+      where.type = filters.type;
+    }
+
+    if (filters?.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters?.currency) {
+      where.currency = filters.currency;
+    }
+
     const accounts = await this.prisma.account.findMany({
-      where: { organizationId: orgId },
+      where,
       orderBy: { createdAt: 'desc' },
     });
 

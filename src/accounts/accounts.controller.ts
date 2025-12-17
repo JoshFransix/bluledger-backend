@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiSecurity, ApiQuery } from '@nestjs/swagger';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
@@ -26,8 +26,20 @@ export class AccountsController {
   @Get()
   @ApiOperation({ summary: 'Get all accounts for organization' })
   @ApiResponse({ status: 200, description: 'Accounts retrieved', type: [AccountDto] })
-  findAll(@OrgId() orgId: string) {
-    return this.accountsService.findAll(orgId);
+  @ApiQuery({ name: 'type', required: false, enum: ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'], description: 'Filter by account type' })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
+  @ApiQuery({ name: 'currency', required: false, description: 'Filter by currency code' })
+  findAll(
+    @OrgId() orgId: string,
+    @Query('type') type?: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE',
+    @Query('isActive') isActive?: string,
+    @Query('currency') currency?: string,
+  ) {
+    return this.accountsService.findAll(orgId, {
+      type,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      currency,
+    });
   }
 
   @Get(':id')

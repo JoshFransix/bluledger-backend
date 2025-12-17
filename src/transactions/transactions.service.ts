@@ -41,9 +41,49 @@ export class TransactionsService {
     return this.formatTransaction(transaction);
   }
 
-  async findAll(orgId: string) {
+  async findAll(
+    orgId: string,
+    filters?: {
+      accountId?: string;
+      type?: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+      startDate?: string;
+      endDate?: string;
+      category?: string;
+    },
+  ) {
+    const where: any = { organizationId: orgId };
+
+    // Filter by account (either from or to)
+    if (filters?.accountId) {
+      where.OR = [
+        { fromAccountId: filters.accountId },
+        { toAccountId: filters.accountId },
+      ];
+    }
+
+    // Filter by type
+    if (filters?.type) {
+      where.type = filters.type;
+    }
+
+    // Filter by date range
+    if (filters?.startDate || filters?.endDate) {
+      where.date = {};
+      if (filters.startDate) {
+        where.date.gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        where.date.lte = new Date(filters.endDate);
+      }
+    }
+
+    // Filter by category
+    if (filters?.category) {
+      where.category = { contains: filters.category, mode: 'insensitive' };
+    }
+
     const transactions = await this.prisma.transaction.findMany({
-      where: { organizationId: orgId },
+      where,
       orderBy: { date: 'desc' },
       include: {
         fromAccount: {

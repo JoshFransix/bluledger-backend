@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Refresh tokens for this user
+  refreshTokens RefreshToken[]
+
+  // Organization memberships
+  memberships OrganizationMember[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Members of this organization
+  members OrganizationMember[]
+
+  // Accounts belonging to this organization
+  accounts Account[]
+
+  // Transactions belonging to this organization
+  transactions Transaction[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String   @default("member") // admin, member, viewer
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+model Account {
+  id             String      @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  type           AccountType
+  balance        Decimal     @default(0) @db.Decimal(15, 2)
+  currency       String      @default("USD")
+  description    String?
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Transactions from this account
+  transactionsFrom Transaction[] @relation("FromAccount")
+
+  // Transactions to this account
+  transactionsTo Transaction[] @relation("ToAccount")
+
+  @@map("accounts")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           TransactionType
+  amount         Decimal         @db.Decimal(15, 2)
+  currency       String          @default("USD")
+  description    String?
+  date           DateTime        @default(now())
+  category       String?
+  tags           String[]        @default([])
+  
+  // From account (for expenses and transfers)
+  fromAccountId  String?
+  fromAccount    Account?        @relation("FromAccount", fields: [fromAccountId], references: [id])
+  
+  // To account (for income and transfers)
+  toAccountId    String?
+  toAccount      Account?        @relation("ToAccount", fields: [toAccountId], references: [id])
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("transactions")
+}

@@ -20,30 +20,23 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // CORS
-  app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
-  });
+app.enableCors({
+  origin: [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000',
+  ].filter(Boolean),
+  credentials: true,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+});
 
-  // API versioning
-  app.setGlobalPrefix('api/v1');
+// API versioning
+app.setGlobalPrefix('api/v1');
 
-  // Swagger setup
-  const config = new DocumentBuilder()
-    .setTitle('BluLedger API')
-    .setDescription('BluLedger Backend API Documentation')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addApiKey({ type: 'apiKey', name: 'x-org-id', in: 'header' }, 'x-org-id')
-    .build();
+const port = process.env.PORT || 3000;
+await app.listen(port, '0.0.0.0');
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  const port = process.env.PORT || 3001;
-  await app.listen(port);
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 Swagger docs available at: http://localhost:${port}/api/docs`);
+console.log(`🚀 Application is running on port ${port}`);
+console.log(`📚 Swagger docs available at /api/docs`);
 }
 
 bootstrap();

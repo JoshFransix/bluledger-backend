@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
 import { OrganizationDto } from './dto/organization.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -62,6 +63,18 @@ export class OrganizationsController {
   @ApiResponse({ status: 403, description: 'Access denied' })
   getMembers(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.organizationsService.getMembers(id, userId);
+  }
+
+  @Post(':id/members/invite')
+  @ApiOperation({ summary: 'Invite a member to organization (admin only)' })
+  @ApiResponse({ status: 201, description: 'Member invited' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  inviteMember(
+    @Param('id') orgId: string,
+    @Body() dto: InviteMemberDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.organizationsService.inviteMember(orgId, dto, userId);
   }
 
   @Patch(':id/members/:memberId/role')

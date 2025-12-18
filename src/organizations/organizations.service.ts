@@ -3,10 +3,12 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
 
 @Injectable()
 export class OrganizationsService {
@@ -254,6 +256,79 @@ export class OrganizationsService {
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,
     }));
+  }
+
+  async inviteMember(orgId: string, dto: InviteMemberDto, requestingUserId: string) {
+    // Verify requesting user is admin
+    const requestingMembership = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: orgId,
+          userId: requestingUserId,
+        },
+      },
+    });
+
+    if (!requestingMembership || requestingMembership.role !== 'admin') {
+      throw new ForbiddenException('Only admins can invite members');
+    }
+
+    // Find user by email
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User with this email not found. User must register first.');
+    }
+
+    // Check if user is already a member
+    const existingMember = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: orgId,
+          userId: user.id,
+        },
+      },
+    });
+
+    if (existingMember) {
+      throw new ConflictException('User is already a member of this organization');
+    }
+
+    // Validate role
+    const role = dto.role || 'member';
+    const validRoles = ['admin', 'member', 'viewer'];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+
+    // Add user to organization
+    const member = await this.prisma.organizationMember.create({
+      data: {
+        organizationId: orgId,
+        userId: user.id,
+        role,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: member.id,
+      userId: member.userId,
+      email: member.user.email,
+      name: member.user.name,
+      role: member.role,
+      createdAt: member.createdAt,
+    };
   }
 
   async updateMemberRole(orgId: string, memberId: string, newRole: string, requestingUserId: string) {

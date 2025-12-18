@@ -229,7 +229,7 @@ export class TransactionsService {
         }
         if (dto.fromAccountId) {
           throw new BadRequestException(
-            'Income transactions should not have a source account (fromAccountId). Use TRANSFER for account-to-account movements.'
+            'For income transactions, you only need to select which account will receive the income. Do not select a source account. If you need to transfer funds between accounts, use the TRANSFER transaction type instead.'
           );
         }
         break;
@@ -241,7 +241,7 @@ export class TransactionsService {
         }
         if (dto.toAccountId) {
           throw new BadRequestException(
-            'Expense transactions should not have a destination account (toAccountId). Use TRANSFER for account-to-account movements.'
+            'For expense transactions, you only need to select which account the expense is being charged to. Do not select a destination account. If you need to transfer funds between accounts, use the TRANSFER transaction type instead.'
           );
         }
         break;

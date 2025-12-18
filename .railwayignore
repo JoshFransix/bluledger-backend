@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.local
+.env.development
+.env.test
+dist/
+coverage/
+*.log
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+.docker/
+docker-compose.yml

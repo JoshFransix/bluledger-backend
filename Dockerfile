@@ -1,49 +1,39 @@
-# Build stage
-FROM node:20-slim AS builder
-
+# ---------- Base ----------
+FROM node:20-alpine AS base
 WORKDIR /app
+RUN apk add --no-cache libc6-compat
 
-# Install OpenSSL for Prisma
-RUN apt-get update -y && apt-get install -y openssl
+# ---------- Dependencies ----------
+FROM base AS deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
-
-# Install dependencies
-RUN npm ci --legacy-peer-deps
-
-# Copy source code
+# ---------- Build ----------
+FROM base AS build
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
-
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Build the application
 RUN npm run build
 
-# Production stage
-FROM node:20-slim
-
+# ---------- Production ----------
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Install OpenSSL for Prisma runtime
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
+# Railway listens on 0.0.0.0
+ENV HOST=0.0.0.0
+ENV PORT=3001
 
-# Install production dependencies only
-RUN npm ci --omit=dev --legacy-peer-deps
+# Copy only required files
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./package.json
 
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Security: non-root user
+RUN addgroup -S app && adduser -S app -G app
+USER app
 
-# Expose port (Railway will provide the PORT env var)
-EXPOSE 3001
+EXPOSE 3000
 
-# Start command - migrations handled by Railway startCommand
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["node", "dist/main.js"]

@@ -43,7 +43,7 @@ COPY --from=build /app/prisma ./prisma
 RUN addgroup -S app && adduser -S app -G app
 USER app
 
-EXPOSE 3000
+EXPOSE 3001
 
 # Run migrations and start the app
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

@@ -45,5 +45,5 @@ USER app
 
 EXPOSE 3001
 
-# Run migrations and start the app
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main.js"]
+# Start the app (migrations handled by Railway startCommand)
+CMD ["node", "dist/main.js"]

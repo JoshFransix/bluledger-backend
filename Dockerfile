@@ -46,4 +46,4 @@ USER app
 EXPOSE 3001
 
 # Run migrations and start the app
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main.js"]

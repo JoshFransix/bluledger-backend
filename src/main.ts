@@ -20,14 +20,39 @@ async function bootstrap() {
   // Cookie parser for refresh tokens
   app.use(cookieParser());
 
-  // CORS
+  // CORS - Allow frontend in production and development
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000',
+    'https://*.vercel.app',
+    'https://*.railway.app',
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: [
-      process.env.FRONTEND_URL,
-      'http://localhost:3000',
-    ].filter(Boolean),
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or Postman)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin matches allowed patterns
+      const isAllowed = allowedOrigins.some(pattern => {
+        if (pattern.includes('*')) {
+          const regex = new RegExp(pattern.replace('*', '.*'));
+          return regex.test(origin);
+        }
+        return pattern === origin;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.log('⚠️  Blocked CORS for origin:', origin);
+        callback(null, false);
+      }
+    },
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
   });
 
   // API versioning

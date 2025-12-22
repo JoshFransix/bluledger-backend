@@ -37,8 +37,7 @@ async function bootstrap() {
   
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
-  console.log(`📚 API available at: /api/v1`);
+  console.log(`📚 Swagger docs available at: http://0.0.0.0:${port}/api/docs`);
 }
 
 bootstrap().catch((err) => {

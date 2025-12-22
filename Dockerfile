@@ -26,6 +26,7 @@ ENV NODE_ENV=production
 
 # Railway listens on 0.0.0.0
 ENV HOST=0.0.0.0
+ENV PORT=3001
 
 # Install openssl for Prisma
 RUN apk add --no-cache openssl

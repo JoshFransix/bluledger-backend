@@ -24,9 +24,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Railway listens on 0.0.0.0
+# Listen on all interfaces
 ENV HOST=0.0.0.0
-ENV PORT=3001
 
 # Install openssl for Prisma
 RUN apk add --no-cache openssl
@@ -45,5 +44,5 @@ USER app
 
 EXPOSE 3001
 
-# Start the app (migrations handled by Railway startCommand)
-CMD ["node", "dist/main.js"]
+# Run migrations and start the app
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

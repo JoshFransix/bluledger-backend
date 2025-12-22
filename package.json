@@ -8,6 +8,7 @@
     "scripts": {
         "prebuild": "prisma generate",
         "build": "nest build",
+        "build:render": "npm ci && npx prisma generate && npm run build",
         "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
         "start": "nest start",
         "start:dev": "nest start --watch",

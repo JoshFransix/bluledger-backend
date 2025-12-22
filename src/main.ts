@@ -20,12 +20,27 @@ async function bootstrap() {
   // Cookie parser for refresh tokens
   app.use(cookieParser());
 
-  // CORS - Allow all origins for now to debug
+  // CORS - Allow specific origins
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000',
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: true, // Allow all origins temporarily
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman, or same-origin)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`⚠️  Blocked CORS request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept', 'x-org-id'],
   });
 
   // API versioning

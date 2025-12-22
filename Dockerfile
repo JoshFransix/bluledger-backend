@@ -43,7 +43,5 @@ COPY --from=build /app/prisma ./prisma
 RUN addgroup -S app && adduser -S app -G app
 USER app
 
-EXPOSE 3001
-
 # Start the app (migrations handled by Railway startCommand)
 CMD ["node", "dist/main.js"]

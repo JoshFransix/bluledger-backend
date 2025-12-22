@@ -33,7 +33,7 @@ async function bootstrap() {
   // API versioning
   app.setGlobalPrefix('api/v1');
 
-  const port = process.env.PORT || 3001;
+  const port = Number(process.env.PORT);
   await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Application is running on port ${port}`);
